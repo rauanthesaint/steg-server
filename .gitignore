@@ -1,0 +1,30 @@
+# Node.js dependencies
+node_modules/
+
+# TypeScript output directory
+dist/
+
+# Environment files
+.env
+
+# IDE or editor directories (optional)
+.vscode/
+.idea/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Optional: Ignore build folders
+build/
+
+# Optional: Ignore coverage folder (if you're using a testing framework with coverage)
+coverage/
+
+.prettierrc
+/sql
