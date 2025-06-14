@@ -29,7 +29,7 @@ export default async function (req: Request, res: Response) {
         const fileBuffer = fs.readFileSync(outputPath)
         const base64File = fileBuffer.toString('base64')
 
-        res.json({
+        res.status(200).json({
             message: 'Text embedded successfully',
             binaryMessage: binary,
             outputFile: base64File,
