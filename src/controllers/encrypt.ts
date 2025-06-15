@@ -16,7 +16,6 @@ export default async function (req: Request, res: Response) {
     try {
         const file = req.file
         const { text } = req.body
-        console.log(text)
         if (!file) {
             res.status(400).json({ message: 'No file uploaded' })
             return
