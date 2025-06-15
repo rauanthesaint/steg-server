@@ -29,12 +29,12 @@ export class AlgorithmSelectorService {
             return this.selectImageAlgorithm(mimetype, messageLength)
         }
 
-        // Для аудио (если будет реализовано)
+        // Для аудио
         if (mimetype.startsWith('audio/')) {
             return this.selectAudioAlgorithm(mimetype, messageLength)
         }
 
-        // По умолчанию LSB
+        // По умолчанию LSB для изображений
         return {
             algorithm: 'lsb',
             reason: 'Default algorithm for supported format',
@@ -54,10 +54,10 @@ export class AlgorithmSelectorService {
             available.push('lsb')
         }
 
-        // Здесь можно добавить другие алгоритмы
-        // if (algorithmsConfig.image.dct?.supportedFormats.includes(mimetype)) {
-        //     available.push('dct')
-        // }
+        // Проверяем LSB для аудио
+        if (algorithmsConfig.audio.lsb.supportedFormats.includes(mimetype)) {
+            available.push('lsb-audio')
+        }
 
         return available
     }
@@ -106,16 +106,30 @@ export class AlgorithmSelectorService {
         mimetype: string,
         messageLength?: number
     ): AlgorithmRecommendation {
-        // Заглушка для будущих аудио алгоритмов
+        // Для WAV файлов - LSB-Audio
+        if (algorithmsConfig.audio.lsb.supportedFormats.includes(mimetype)) {
+            const reason =
+                messageLength && messageLength > 5000
+                    ? 'LSB-Audio recommended for large messages in audio'
+                    : 'LSB-Audio optimal for WAV format'
+
+            return {
+                algorithm: 'lsb-audio',
+                reason,
+                capacity: 'high',
+                security: 'medium',
+            }
+        }
+
         throw new UnsupportedFormatError(
-            `Audio format not implemented: ${mimetype}`
+            `Audio format not supported: ${mimetype}`
         )
     }
 
     private isFormatSupported(mimetype: string): boolean {
         const allSupported = [
             ...fileTypesConfig.supported.image,
-            // ...fileTypesConfig.supported.audio, // когда будет реализовано
+            ...fileTypesConfig.supported.audio,
         ]
 
         return allSupported.includes(mimetype)

@@ -15,6 +15,15 @@ const API_VERSION = '/api/v1'
 /**
  * Health checks (без rate limiting)
  */
+router.get('/health', (req, res) => {
+    res.json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        version: '1.0.0',
+    })
+})
 
 /**
  * Основные API роуты с rate limiting
@@ -32,14 +41,29 @@ router.get(`${API_VERSION}`, (req, res) => {
     res.json({
         name: 'Steganography API',
         version: '1.0.0',
-        description: 'API for steganographic operations on images',
+        description:
+            'API for steganographic operations on images and audio files',
         endpoints: {
             health: '/health',
             steganography: `${API_VERSION}/steganography`,
             documentation: `${API_VERSION}/docs`,
         },
-        supportedFormats: ['image/png', 'image/bmp', 'image/tiff'],
-        supportedAlgorithms: ['lsb'],
+        supportedFormats: {
+            image: ['image/png', 'image/bmp', 'image/tiff'],
+            audio: ['audio/wav'],
+        },
+        supportedAlgorithms: {
+            image: ['lsb'],
+            audio: ['lsb-audio'],
+        },
+        features: [
+            'LSB steganography for images',
+            'LSB steganography for audio',
+            'AES encryption support',
+            'Automatic format detection',
+            'Capacity checking',
+            'Algorithm recommendations',
+        ],
     })
 })
 

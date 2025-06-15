@@ -73,20 +73,23 @@ export class ValidationService {
             }
 
             if (fileSize < 1024) {
-                // Минимум 1KB
                 warnings.push(
                     'Very small file, limited capacity for message embedding'
                 )
             }
 
-            // 3. Валидация формата
-            if (!fileTypesConfig.supported.image.includes(request.mimetype)) {
+            // 3. Валидация формата - проверяем все поддерживаемые форматы
+            const allSupportedFormats = [
+                ...fileTypesConfig.supported.image,
+                ...fileTypesConfig.supported.audio,
+            ]
+            if (!allSupportedFormats.includes(request.mimetype)) {
                 errors.push(`Unsupported file format: ${request.mimetype}`)
             }
 
-            // 4. Валидация алгоритма
+            // 4. Валидация алгоритма - используем новый метод
             if (
-                !this.algorithmSelector.isCompatible(
+                !AlgorithmFactory.isAlgorithmCompatible(
                     request.algorithm,
                     request.mimetype
                 )
@@ -112,31 +115,41 @@ export class ValidationService {
 
                 // Проверка вместимости
                 if (errors.length === 0) {
-                    const algorithm = AlgorithmFactory.getAlgorithm(
-                        request.algorithm
-                    )
-                    const canFit = await algorithm.checkCapacity(
-                        request.filePath,
-                        request.message.length,
-                        request.mimetype
-                    )
-
-                    if (!canFit) {
-                        errors.push('Message too large for selected file')
-                    } else {
-                        // Приблизительная оценка вместимости
-                        estimatedCapacity = this.estimateCapacity(
-                            fileSize,
+                    try {
+                        const algorithm = AlgorithmFactory.getAlgorithm(
+                            request.algorithm
+                        )
+                        const canFit = await algorithm.checkCapacity(
+                            request.filePath,
+                            request.message.length,
                             request.mimetype
                         )
 
-                        const usageRatio =
-                            (request.message.length * 8) / estimatedCapacity
-                        if (usageRatio > 0.8) {
-                            warnings.push(
-                                'High capacity usage, may affect image quality'
+                        if (!canFit) {
+                            errors.push('Message too large for selected file')
+                        } else {
+                            // Приблизительная оценка вместимости
+                            estimatedCapacity = this.estimateCapacity(
+                                fileSize,
+                                request.mimetype
                             )
+
+                            const usageRatio =
+                                (request.message.length * 8) / estimatedCapacity
+                            if (usageRatio > 0.8) {
+                                warnings.push(
+                                    'High capacity usage, may affect file quality'
+                                )
+                            }
                         }
+                    } catch (error) {
+                        errors.push(
+                            `Capacity check failed: ${
+                                error instanceof Error
+                                    ? error.message
+                                    : 'Unknown error'
+                            }`
+                        )
                     }
                 }
             }
@@ -210,13 +223,17 @@ export class ValidationService {
             fileSize = fileInfo.size
 
             // 2. Валидация формата
-            if (!fileTypesConfig.supported.image.includes(request.mimetype)) {
+            const allSupportedFormats = [
+                ...fileTypesConfig.supported.image,
+                ...fileTypesConfig.supported.audio,
+            ]
+            if (!allSupportedFormats.includes(request.mimetype)) {
                 errors.push(`Unsupported file format: ${request.mimetype}`)
             }
 
-            // 3. Валидация алгоритма
+            // 3. Валидация алгоритма - используем новый метод
             if (
-                !this.algorithmSelector.isCompatible(
+                !AlgorithmFactory.isAlgorithmCompatible(
                     request.algorithm,
                     request.mimetype
                 )
@@ -228,7 +245,6 @@ export class ValidationService {
 
             // 4. Проверка на наличие встроенных данных (базовая)
             if (fileSize < 2048) {
-                // Минимальный размер для содержательного файла со стего-данными
                 warnings.push(
                     'File seems too small to contain meaningful steganographic data'
                 )
@@ -261,7 +277,7 @@ export class ValidationService {
         algorithm: string,
         mimetype: string
     ): boolean {
-        return this.algorithmSelector.isCompatible(algorithm, mimetype)
+        return AlgorithmFactory.isAlgorithmCompatible(algorithm, mimetype)
     }
 
     /**
@@ -277,9 +293,15 @@ export class ValidationService {
         const usageRatio = (messageLength * 8) / estimatedCapacity
 
         if (usageRatio > 0.9) {
-            recommendations.push(
-                'Consider using a larger image or shorter message'
-            )
+            if (mimetype.startsWith('image/')) {
+                recommendations.push(
+                    'Consider using a larger image or shorter message'
+                )
+            } else if (mimetype.startsWith('audio/')) {
+                recommendations.push(
+                    'Consider using a longer audio file or shorter message'
+                )
+            }
         }
 
         if (mimetype === 'image/jpeg') {
@@ -289,8 +311,13 @@ export class ValidationService {
         }
 
         if (fileSize > 10 * 1024 * 1024) {
-            // 10MB
             recommendations.push('Large files may take longer to process')
+        }
+
+        if (mimetype.startsWith('audio/') && fileSize < 1 * 1024 * 1024) {
+            recommendations.push(
+                'Short audio files have limited capacity for message embedding'
+            )
         }
 
         return recommendations
@@ -304,6 +331,8 @@ export class ValidationService {
                 return Math.floor(fileSize * 0.75) // ~75% пикселей доступны
             case 'image/tiff':
                 return Math.floor(fileSize * 0.6) // Меньше из-за сжатия
+            case 'audio/wav':
+                return Math.floor(fileSize * 0.5) // ~50% сэмплов доступны для LSB
             default:
                 return Math.floor(fileSize * 0.5)
         }

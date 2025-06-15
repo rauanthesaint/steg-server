@@ -4,7 +4,7 @@ import { join } from 'path'
 import { appConfig } from '../config/app.config'
 import { fileTypesConfig } from '../config/file-types.config'
 import { detectFileFormat } from '../utils/format-detector'
-import { validateImageFile } from '../utils/file-utils'
+import { validateImageFile, validateAudioFile } from '../utils/file-utils'
 import { logger } from '../utils/logger'
 import { UnsupportedFormatError } from '../utils/error-handler'
 
@@ -35,13 +35,17 @@ export class FileProcessorService {
         const {
             validateFormat = true,
             maxSize = appConfig.maxFileSize,
-            allowedFormats = fileTypesConfig.supported.image,
+            allowedFormats = [
+                ...fileTypesConfig.supported.image,
+                ...fileTypesConfig.supported.audio,
+            ],
         } = options
 
         logger.info('Processing uploaded file', {
             originalName,
             mimetype,
             filePath,
+            validateFormat,
         })
 
         // Проверка существования файла
@@ -81,14 +85,24 @@ export class FileProcessorService {
                 )
             }
 
-            // Дополнительная валидация для изображений
-            await validateImageFile(filePath, mimetype)
+            // Дополнительная валидация в зависимости от типа файла
+            try {
+                if (mimetype.startsWith('image/')) {
+                    await validateImageFile(filePath, mimetype)
+                } else if (mimetype.startsWith('audio/')) {
+                    await validateAudioFile(filePath, mimetype)
+                }
+            } catch (error) {
+                await this.cleanupFile(filePath)
+                throw error
+            }
         }
 
         logger.info('File processing completed', {
             originalName,
             size: stats.size,
             detectedFormat,
+            mimetype,
         })
 
         return {

@@ -26,7 +26,7 @@ const fileFilter = (
     if (isSupportedFormat(file.mimetype)) {
         cb(null, true)
     } else {
-        cb(new Error('Unsupported file format'))
+        cb(new Error(`Unsupported file format: ${file.mimetype}`))
     }
 }
 
@@ -46,7 +46,13 @@ export const fileUploadMiddleware = async (
 ) => {
     upload.single('file')(req, res, async (err) => {
         if (err) {
-            return res.status(400).json({ error: err.message })
+            return res.status(400).json({
+                success: false,
+                error: {
+                    message: err.message,
+                    code: 'UPLOAD_ERROR',
+                },
+            })
         }
 
         if (req.file) {
@@ -54,12 +60,22 @@ export const fileUploadMiddleware = async (
                 // Дополнительная проверка формата
                 const detectedFormat = await detectFileFormat(req.file.path)
                 if (detectedFormat !== req.file.mimetype) {
-                    return res
-                        .status(400)
-                        .json({ error: 'File format mismatch' })
+                    return res.status(400).json({
+                        success: false,
+                        error: {
+                            message: `File format mismatch: expected ${req.file.mimetype}, detected ${detectedFormat}`,
+                            code: 'FORMAT_MISMATCH',
+                        },
+                    })
                 }
             } catch (error) {
-                return res.status(400).json({ error: 'Invalid file' })
+                return res.status(400).json({
+                    success: false,
+                    error: {
+                        message: 'Invalid file format',
+                        code: 'INVALID_FILE',
+                    },
+                })
             }
         }
 
