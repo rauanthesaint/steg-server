@@ -1,0 +1,60 @@
+steganography-backend/
+├── src/
+│   ├── controllers/
+│   │   ├── steganography.controller.js
+│   │   └── health.controller.js
+│   ├── services/
+│   │   ├── steganography.service.js
+│   │   ├── algorithm-selector.service.js
+│   │   ├── file-processor.service.js
+│   │   └── validation.service.js
+│   ├── algorithms/
+│   │   ├── image/
+│   │   │   ├── lsb-image.algorithm.js
+│   │   │   ├── dct-image.algorithm.js
+│   │   │   └── dwt-image.algorithm.js
+│   │   ├── audio/
+│   │   │   ├── lsb-audio.algorithm.js
+│   │   │   └── phase-coding.algorithm.js
+│   │   ├── text/
+│   │   │   └── whitespace.algorithm.js
+│   │   ├── video/
+│   │   │   └── frame-based.algorithm.js
+│   │   └── base/
+│   │       └── algorithm.interface.js
+│   ├── middleware/
+│   │   ├── file-upload.middleware.js
+│   │   ├── rate-limit.middleware.js
+│   │   ├── auth.middleware.js
+│   │   └── error-handler.middleware.js
+│   ├── utils/
+│   │   ├── file-utils.js
+│   │   ├── crypto-utils.js
+│   │   ├── temp-storage.js
+│   │   ├── format-detector.js
+│   │   └── logger.js
+│   ├── config/
+│   │   ├── app.config.js
+│   │   ├── algorithms.config.js
+│   │   └── file-types.config.js
+│   ├── routes/
+│   │   └── steganography.routes.js
+│   ├── models/
+│   │   └── operation.model.js
+│   └── temp/
+│       ├── uploads/
+│       └── outputs/
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── fixtures/
+├── docker/
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── docs/
+│   ├── api.md
+│   └── algorithms.md
+├── package.json
+├── .env.example
+├── .gitignore
+└── server.js
